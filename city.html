@@ -1,0 +1,664 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>你的灵魂栖息城 - 深度心理测评</title>
+    <style>
+        /* 极简高级 Ins 侘寂风 + 杂志排版感 + 环境光晕 */
+        :root {
+            --bg-color: #fdfcfb;
+            --text-main: #33312e;
+            --text-light: #908d88;
+            --card-bg: rgba(255, 255, 255, 0.85);
+            --primary: #c2b2a1; /* 高级莫兰迪棕 */
+            --primary-light: #ece7e1;
+            --accent: #6b6056; /* 深棕强调色 */
+            --shadow: 0 20px 50px rgba(0, 0, 0, 0.05);
+            --serif: "Georgia", "Times New Roman", serif;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: -apple-system, "PingFang SC", "Helvetica Neue", sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            overflow-x: hidden;
+            display: flex;
+            justify-content: center;
+            min-height: 100vh;
+        }
+
+        /* --- 柔和背景色晕 (氛围大色圈) --- */
+        .ambient-blob-1, .ambient-blob-2 { position: fixed; border-radius: 50%; filter: blur(60px); z-index: -2; pointer-events: none; animation: breathe 8s infinite alternate ease-in-out;}
+        .ambient-blob-1 { top: -10%; left: -20%; width: 70vw; height: 70vw; background: radial-gradient(circle, rgba(194, 178, 161, 0.2) 0%, rgba(255,255,255,0) 70%); }
+        .ambient-blob-2 { bottom: -10%; right: -20%; width: 80vw; height: 80vw; background: radial-gradient(circle, rgba(216, 207, 196, 0.3) 0%, rgba(255,255,255,0) 70%); animation-delay: -4s;}
+        
+        @keyframes breathe {
+            0% { transform: scale(1) translate(0, 0); opacity: 0.8;}
+            100% { transform: scale(1.1) translate(10px, -10px); opacity: 1;}
+        }
+
+        #app {
+            width: 100%;
+            max-width: 480px;
+            position: relative;
+            min-height: 100vh;
+            overflow: hidden;
+        }
+
+        .page {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            padding: 8vw 6vw;
+            display: none;
+            flex-direction: column;
+            opacity: 0;
+            transition: opacity 0.6s ease;
+            overflow-y: auto;
+            backdrop-filter: blur(10px); /* 让背景色圈更柔和 */
+        }
+        .page.active { display: flex; opacity: 1; z-index: 10;}
+
+        /* --- 装饰水印 --- */
+        .watermark { position: absolute; top: -10px; right: -30px; font-family: var(--serif); font-size: 90px; color: rgba(194, 178, 161, 0.06); font-weight: bold; z-index: -1; transform: rotate(15deg); pointer-events: none; letter-spacing: 5px;}
+
+        /* --- 1. 密码验证页 --- */
+        #auth-page { justify-content: center; align-items: center; }
+        .auth-box { text-align: center; width: 100%; padding: 45px 25px; background: var(--card-bg); border-radius: 2px; box-shadow: var(--shadow); position: relative;}
+        .auth-box::before { content: ''; position: absolute; top: 6px; left: 6px; right: 6px; bottom: 6px; border: 1px solid var(--primary-light); pointer-events: none;}
+        .auth-title { font-size: 20px; font-weight: 300; margin-bottom: 10px; letter-spacing: 2px;}
+        .auth-sub { font-size: 13px; color: var(--text-light); margin-bottom: 35px; font-family: var(--serif); font-style: italic;}
+        .auth-input { width: 100%; padding: 15px; border: none; border-bottom: 1px solid #ddd; background: transparent; font-size: 18px; text-align: center; letter-spacing: 4px; outline: none; transition: border 0.3s; margin-bottom: 35px;}
+        .auth-input:focus { border-bottom: 1px solid var(--primary); }
+        .btn-auth { background: var(--text-main); color: #fff; border: none; padding: 15px 45px; border-radius: 30px; font-size: 14px; letter-spacing: 2px; cursor: pointer; transition: 0.3s;}
+
+        /* --- 2. 首页 --- */
+        .cover-en { font-family: var(--serif); font-size: 11px; letter-spacing: 5px; color: var(--primary); text-align: center; margin-top: 12vh; margin-bottom: 25px; text-transform: uppercase;}
+        .cover-title { font-size: 30px; font-weight: 300; letter-spacing: 4px; line-height: 1.7; text-align: center; margin-bottom: 30px;}
+        .cover-subtitle { font-size: 13px; color: var(--text-light); text-align: center; line-height: 2; letter-spacing: 1px; }
+        .btn-start { margin-top: 10vh; background: var(--text-main); color: #fff; border: none; padding: 18px 0; border-radius: 40px; font-size: 15px; letter-spacing: 2px; box-shadow: 0 10px 25px rgba(44, 43, 41, 0.15); transition: transform 0.2s; }
+        .btn-start:active { transform: scale(0.96); }
+
+        /* --- 3. 答题页 --- */
+        .progress-wrapper { display: flex; align-items: center; justify-content: space-between; margin-bottom: 35px; }
+        .progress-bar { flex-grow: 1; height: 2px; background: var(--primary-light); margin: 0 15px; overflow: hidden; position: relative;}
+        .progress-inner { height: 100%; background: var(--accent); width: 0%; transition: width 0.4s ease; }
+        .q-num { font-family: var(--serif); font-size: 14px; color: var(--accent); font-style: italic;}
+        
+        .question-card { background: var(--card-bg); border-radius: 0; padding: 45px 25px; box-shadow: var(--shadow); transform: translateY(0); transition: transform 0.4s ease, opacity 0.4s ease; position: relative;}
+        .question-card::after { content: ''; position: absolute; left: -4px; top: 15px; bottom: 15px; width: 3px; background: var(--primary-light);}
+        .question-card.slide-out { transform: translateX(-100%); opacity: 0; }
+        .question-card.slide-in { animation: slideIn 0.5s forwards; }
+        @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+        
+        .q-title { font-size: 17px; line-height: 1.8; margin-bottom: 40px; font-weight: 300; letter-spacing: 1px; color: #1a1a1a;}
+        .option { background: transparent; padding: 18px 20px; margin-bottom: 16px; font-size: 14px; line-height: 1.6; cursor: pointer; border: 1px solid #e0ddd8; transition: all 0.2s; letter-spacing: 0.5px; border-radius: 4px;}
+        .option:active { background: var(--text-main); color: #fff; border-color: var(--text-main);}
+
+        /* --- 4. 结果页 (高级杂志风排版) --- */
+        #result-page { padding-bottom: 60px; }
+        .result-top-en { font-family: var(--serif); font-size: 10px; color: var(--text-light); text-align: center; letter-spacing: 4px; margin-bottom: 25px; border-bottom: 1px solid #eaeaea; padding-bottom: 12px; }
+        
+        .result-header { text-align: center; margin-bottom: 25px; }
+        .city-name { font-size: 46px; font-weight: 300; margin: 10px 0; color: var(--text-main); letter-spacing: 8px; font-family: "PingFang SC", serif;}
+        
+        /* 双重模型标签 */
+        .model-badges { display: flex; justify-content: center; gap: 8px; margin-top: 15px; }
+        .badge { background: transparent; color: var(--accent); padding: 5px 12px; font-size: 11px; letter-spacing: 1px; border: 1px solid var(--primary-light); border-radius: 2px;}
+
+        /* 第一幅图：城市意境 */
+        .city-image { width: 100%; height: 260px; background-color: #eaeaea; margin: 0 0 35px 0; background-size: cover; background-position: center; position: relative; box-shadow: var(--shadow);}
+        
+        /* 第二幅图：灵魂意象图 (精美小图) */
+        .aura-wrapper { display: flex; flex-direction: column; align-items: center; margin-bottom: 40px; }
+        .aura-image { width: 140px; height: 180px; background-size: cover; background-position: center; border-radius: 200px 200px 0 0; padding: 5px; box-shadow: 0 15px 30px rgba(0,0,0,0.08); border: 4px solid #fff; margin-bottom: 20px;}
+        .whisper-text { font-size: 14px; color: var(--accent); font-style: italic; text-align: center; padding: 0 20px; line-height: 1.8; letter-spacing: 1px; position: relative;}
+        .whisper-text::before { content: '“'; font-family: var(--serif); font-size: 40px; color: var(--primary-light); position: absolute; top: -15px; left: 0; }
+        
+        .section-title-box { display: flex; align-items: center; justify-content: center; margin-bottom: 20px; }
+        .section-title-line { height: 1px; background: var(--primary-light); flex-grow: 1; }
+        .section-title { padding: 0 15px; font-size: 12px; font-weight: 400; color: var(--text-light); letter-spacing: 3px; font-family: var(--serif);}
+
+        /* --- 深层剖析文案 --- */
+        .result-desc { font-size: 14px; line-height: 2.2; color: var(--text-main); text-align: justify; padding: 0 10px; margin-bottom: 45px; white-space: pre-wrap; letter-spacing: 0.5px;}
+
+        /* --- 灵魂档案表格 --- */
+        .profile-table { width: 100%; border-collapse: collapse; margin-bottom: 45px; font-size: 13px; background: var(--card-bg); box-shadow: var(--shadow);}
+        .profile-table td { padding: 18px 16px; border: 1px solid #f4f3f0; vertical-align: middle;}
+        .td-label { width: 35%; color: var(--text-light); font-weight: 300; letter-spacing: 1px; text-align: right; border-right: 1px dashed #eaeaea !important;}
+        .td-value { width: 65%; color: var(--text-main); font-weight: 400; letter-spacing: 1px; line-height: 1.6;}
+        .td-value.shadow { color: #8a6a57; }
+
+        /* --- 五维雷达图 --- */
+        .radar-container { width: 100%; display: flex; justify-content: center; align-items: center; margin-bottom: 40px; position: relative; padding: 20px 0;}
+        .radar-svg { width: 280px; height: 280px; overflow: visible; }
+        .radar-label { font-size: 11px; fill: var(--text-light); letter-spacing: 1px; font-weight: 300; }
+        .radar-value-text { font-family: var(--serif); font-size: 10px; fill: var(--accent); }
+        
+        /* 高级双极数据图表 */
+        .chart-section { padding: 0 10px; margin-bottom: 50px; }
+        .axis-row { margin-bottom: 28px; }
+        .axis-labels { display: flex; justify-content: space-between; font-size: 12px; font-weight: 400; margin-bottom: 10px; color: var(--text-main); letter-spacing: 1px;}
+        .axis-labels .pct { color: var(--primary); font-family: var(--serif); font-style: italic; font-size: 12px; margin: 0 5px; }
+        .bar-container { width: 100%; height: 2px; background: #eaeaea; display: flex; position: relative;}
+        .bar-left { height: 100%; background: var(--accent); transition: width 1.5s cubic-bezier(0.25, 0.8, 0.25, 1); }
+        .bar-right { height: 100%; background: #e0ddd8; transition: width 1.5s cubic-bezier(0.25, 0.8, 0.25, 1); }
+        .bar-center-mark { position: absolute; left: 50%; top: -3px; width: 1px; height: 8px; background: #ccc; }
+
+        /* 底部引导区 */
+        .footer-action { text-align: center; margin-top: 20px; padding: 30px 0; border-top: 1px solid var(--primary-light); }
+        .footer-action p { font-size: 12px; color: var(--text-light); letter-spacing: 2px; line-height: 1.8;}
+
+        /* 加载页 */
+        .loader { width: 1px; height: 70px; background: var(--primary-light); margin: 35vh auto 30px; position: relative; overflow: hidden;}
+        .loader::after { content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 30%; background: var(--accent); animation: scan 1.5s ease-in-out infinite; }
+        @keyframes scan { 0% { top: -30%; } 100% { top: 100%; } }
+        .loading-text { text-align: center; font-size: 13px; color: var(--text-light); line-height: 2.2; letter-spacing: 2px;}
+    </style>
+</head>
+<body>
+
+<!-- 环境氛围色晕 -->
+<div class="ambient-blob-1"></div>
+<div class="ambient-blob-2"></div>
+
+<div id="app">
+    <!-- 装饰水印 -->
+    <div class="watermark">AURA</div>
+
+    <!-- 0. 密码验证页 -->
+    <div id="auth-page" class="page active">
+        <div class="auth-box">
+            <h2 class="auth-title">潜意识密钥</h2>
+            <p class="auth-sub">Enter your specific code</p>
+            <input type="text" id="passcode" class="auth-input" placeholder="输入专属兑换码" maxlength="6">
+            <button class="btn-auth" onclick="verifyCode()">VERIFY</button>
+        </div>
+    </div>
+
+    <!-- 1. 首页 -->
+    <div id="start-page" class="page">
+        <div class="cover-en">Psychological Resonance Test</div>
+        <h1 class="cover-title">测一测你的灵魂<br>栖息在中国哪座城</h1>
+        <p class="cover-subtitle">
+            基于潜意识投射与荣格12原型<br>
+            解剖那些你未曾察觉的隐秘渴望
+        </p>
+        <button class="btn-start" onclick="startTest()">开启深度测评</button>
+    </div>
+
+    <!-- 2. 答题页 -->
+    <div id="question-page" class="page">
+        <div class="progress-wrapper">
+            <span class="q-num">Q.01</span>
+            <div class="progress-bar"><div class="progress-inner" id="progress"></div></div>
+            <span class="q-num">20</span>
+        </div>
+        <div class="question-card" id="q-card">
+            <div class="q-title" id="q-title">题目加载中...</div>
+            <div id="options-container"></div>
+        </div>
+    </div>
+
+    <!-- 3. 加载计算页 -->
+    <div id="loading-page" class="page">
+        <div class="loader"></div>
+        <p class="loading-text">正在捕获你的潜意识频率...<br>交叉比对灵魂暗影...</p>
+    </div>
+
+    <!-- 4. 结果页 -->
+    <div id="result-page" class="page">
+        <div class="result-top-en">CONFIDENTIAL SOUL PROFILE</div>
+        
+        <div class="result-header">
+            <div class="section-title" style="margin-bottom: 10px; font-family: sans-serif;">你的灵魂频率最终共振于</div>
+            <div class="city-name" id="res-city">加载中</div>
+            
+            <div class="model-badges">
+                <span class="badge" id="res-mbti">MBTI: --</span>
+                <span class="badge" id="res-jung">荣格原型: --</span>
+            </div>
+        </div>
+        
+        <!-- 第一幅图：城市意境图 -->
+        <div class="city-image" id="res-img" style="background-image: url('');"></div>
+
+        <!-- 第二幅图：新增的精美灵魂意象图 & 灵魂私语 -->
+        <div class="aura-wrapper">
+            <div class="aura-image" id="res-aura" style="background-image: url('');"></div>
+            <div class="whisper-text" id="res-whisper">“加载中...”</div>
+        </div>
+        
+        <!-- 深层剖析文案（极度感性版） -->
+        <div class="section-title-box">
+            <div class="section-title-line"></div>
+            <div class="section-title">SOUL ANALYSIS</div>
+            <div class="section-title-line"></div>
+        </div>
+        <div class="result-desc" id="res-desc">解析生成中...</div>
+
+        <!-- 深层人格档案表格 -->
+        <div class="section-title-box">
+            <div class="section-title-line"></div>
+            <div class="section-title">PROFILE DETAILS</div>
+            <div class="section-title-line"></div>
+        </div>
+        <table class="profile-table">
+            <tr>
+                <td class="td-label">潜意识驱动力</td>
+                <td class="td-value" id="t-drive">--</td>
+            </tr>
+            <tr>
+                <td class="td-label">高光特质 (Light)</td>
+                <td class="td-value" id="t-light">--</td>
+            </tr>
+            <tr>
+                <td class="td-label">暗影特质 (Shadow)</td>
+                <td class="td-value shadow" id="t-shadow">--</td>
+            </tr>
+            <tr>
+                <td class="td-label">灵魂避难所</td>
+                <td class="td-value" id="t-safe">--</td>
+            </tr>
+        </table>
+
+        <!-- 五维雷达图 -->
+        <div class="section-title-box">
+            <div class="section-title-line"></div>
+            <div class="section-title">COGNITIVE RADAR</div>
+            <div class="section-title-line"></div>
+        </div>
+        <div class="radar-container" id="radar-container"></div>
+
+        <!-- 专业级双极数据统计图 -->
+        <div class="section-title-box">
+            <div class="section-title-line"></div>
+            <div class="section-title">MBTI SPECTRUM</div>
+            <div class="section-title-line"></div>
+        </div>
+        <div class="chart-section">
+            <div class="axis-row">
+                <div class="axis-labels">
+                    <span>内向(I) <span class="pct" id="pct-I">0%</span></span>
+                    <span><span class="pct" id="pct-E">0%</span> 外向(E)</span>
+                </div>
+                <div class="bar-container">
+                    <div class="bar-center-mark"></div>
+                    <div class="bar-left" id="bar-IE-L"></div>
+                    <div class="bar-right" id="bar-IE-R"></div>
+                </div>
+            </div>
+            <div class="axis-row">
+                <div class="axis-labels">
+                    <span>直觉(N) <span class="pct" id="pct-N">0%</span></span>
+                    <span><span class="pct" id="pct-S">0%</span> 实感(S)</span>
+                </div>
+                <div class="bar-container">
+                    <div class="bar-center-mark"></div>
+                    <div class="bar-left" id="bar-NS-L"></div>
+                    <div class="bar-right" id="bar-NS-R"></div>
+                </div>
+            </div>
+            <div class="axis-row">
+                <div class="axis-labels">
+                    <span>理智(T) <span class="pct" id="pct-T">0%</span></span>
+                    <span><span class="pct" id="pct-F">0%</span> 情感(F)</span>
+                </div>
+                <div class="bar-container">
+                    <div class="bar-center-mark"></div>
+                    <div class="bar-left" id="bar-TF-L"></div>
+                    <div class="bar-right" id="bar-TF-R"></div>
+                </div>
+            </div>
+            <div class="axis-row">
+                <div class="axis-labels">
+                    <span>判断(J) <span class="pct" id="pct-J">0%</span></span>
+                    <span><span class="pct" id="pct-P">0%</span> 感知(P)</span>
+                </div>
+                <div class="bar-container">
+                    <div class="bar-center-mark"></div>
+                    <div class="bar-left" id="bar-JP-L"></div>
+                    <div class="bar-right" id="bar-JP-R"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 截图保存引导区 -->
+        <div class="footer-action">
+            <p>↓ 长按屏幕保存你的专属灵魂档案 ↓<br>Share your authentic soul</p>
+        </div>
+        
+        <!-- 微信引流模块 (已注释) 
+        <div class="footer-action" style="margin-top: 20px; padding-top: 20px; border-top: 1px dashed #ddd; text-align: center;">
+            <p style="font-size: 13px; color: var(--text-light); margin-bottom: 15px;">想获取完整《30页深度人格解析》？</p>
+            <button style="background: #1aad19; color: #fff; border: none; padding: 14px 30px; border-radius: 30px; font-size: 15px; box-shadow: 0 8px 20px rgba(26,173,25,0.3);" onclick="copyWechat()">添加主理人微信：XXXX</button>
+        </div>
+        -->
+    </div>
+</div>
+
+<script>
+    /* =========================================
+       1. 密码验证逻辑 (支持回车)
+       ========================================= */
+    const VALID_CODES = ["8864", "2026", "5200"]; 
+    function verifyCode() {
+        const input = document.getElementById('passcode').value.trim();
+        if (VALID_CODES.includes(input)) {
+            document.getElementById('auth-page').classList.remove('active');
+            document.getElementById('start-page').classList.add('active');
+        } else {
+            alert("密钥无效，请核对小红书自动发货私信。");
+        }
+    }
+    document.getElementById('passcode').addEventListener('keypress', function (e) {
+        if (e.key === 'Enter') verifyCode();
+    });
+
+    /* =========================================
+       2. 专业题库 (20题)
+       ========================================= */
+    const questions = [
+        { text: "度过极其疲惫的一周后，哪种方式能让你满血复活？", options: [ { text: "参加有趣的社交聚会，在人群中汲取能量", val: "E" }, { text: "关闭手机，一个人窝在房间里看剧或发呆", val: "I" } ] },
+        { text: "在陌生人很多的破冰场合，你通常的潜意识反应是？", options: [ { text: "感到兴奋，主动寻找有趣的人开启话题", val: "E" }, { text: "感到耗能，更倾向于待在角落默默观察", val: "I" } ] },
+        { text: "你对“独处”这个概念的真实感受是？", options: [ { text: "偶尔需要，但时间久了会觉得空虚无聊", val: "E" }, { text: "这是绝对的必需品，是我灵魂呼吸的时刻", val: "I" } ] },
+        { text: "当被要求即兴发表观点时，你的思维模式更倾向于？", options: [ { text: "边说边想，通过表达来理清逻辑", val: "E" }, { text: "先在脑海中深思熟虑，组织好语言再开口", val: "I" } ] },
+        { text: "你的朋友们通常会如何评价你的社交属性？", options: [ { text: "开朗热情，是圈子里的气氛活跃者", val: "E" }, { text: "安静内敛，带有一点距离与神秘感", val: "I" } ] },
+        { text: "当你听到“未来”这个词，你的第一反应是？", options: [ { text: "规划眼前的每一步，未来是脚踏实地走出来的", val: "S" }, { text: "脑海中浮现出各种宏大的画面和无限的可能性", val: "N" } ] },
+        { text: "描述一件经历过的事情时，你的表达习惯是？", options: [ { text: "精确还原当时的时间、地点和具体细节", val: "S" }, { text: "略过细节，直接提炼这件事的深层寓意或感受", val: "N" } ] },
+        { text: "面对一份复杂的说明书或新软件，你通常？", options: [ { text: "仔细阅读操作步骤，按部就班地执行", val: "S" }, { text: "凭直觉先瞎折腾一番，摸索大概的底层逻辑", val: "N" } ] },
+        { text: "在欣赏一幅抽象画时，你更容易关注？", options: [ { text: "画家运用的色彩搭配、光影和笔触技巧", val: "S" }, { text: "画面背后隐藏的情感隐喻和符号象征", val: "N" } ] },
+        { text: "你更欣赏哪一种生活态度？", options: [ { text: "活在当下，享受触手可及的现世安稳", val: "S" }, { text: "追寻意义，即使那意味着脱离现实的轨道", val: "N" } ] },
+        { text: "朋友向你哭诉在职场遭遇的不公，你本能的做法是？", options: [ { text: "帮TA分析利弊，寻找解决问题的客观方法", val: "T" }, { text: "提供极高的情绪价值，与TA共情并谴责对方", val: "F" } ] },
+        { text: "在评价一个人是否优秀时，你更看重？", options: [ { text: "TA的能力、效率以及取得的实际成就", val: "T" }, { text: "TA的人品、善良以及对他人的关怀程度", val: "F" } ] },
+        { text: "如果你要开除一个工作不达标但很努力的员工，你会？", options: [ { text: "坚持原则，商业就是商业，按规章办事", val: "T" }, { text: "内心极其煎熬，会试图帮TA找其他出路", val: "F" } ] },
+        { text: "在争论中，你认为哪一点更重要？", options: [ { text: "逻辑严密，找出事实真相，即使有些伤人", val: "T" }, { text: "维护和谐，照顾对方的感受，即使妥协真相", val: "F" } ] },
+        { text: "你认为自己更像是一个被什么驱动的人？", options: [ { text: "清醒的头脑与理性的冰冷法则", val: "T" }, { text: "跳动的心脏与滚烫的情感准则", val: "F" } ] },
+        { text: "对于即将到来的一次长途旅行，你的状态是？", options: [ { text: "行程表精细到小时，酒店机票全部落定才安心", val: "J" }, { text: "只定好目的地，随遇而安，享受未知的惊喜", val: "P" } ] },
+        { text: "面对DDL(最后期限)，你的工作节奏通常是？", options: [ { text: "提前拆解任务，有条不紊地尽早完成", val: "J" }, { text: "不到最后一刻没有灵感，习惯极限冲刺", val: "P" } ] },
+        { text: "你如何看待生活中的“突发变故”？", options: [ { text: "这会打乱我的计划，让我感到焦虑和烦躁", val: "J" }, { text: "兵来将挡水来土掩，有时反而觉得很刺激", val: "P" } ] },
+        { text: "你的手机桌面和电脑文件通常是？", options: [ { text: "分门别类，排列整齐，强迫症福音", val: "J" }, { text: "比较随意，只要我自己能找到就行", val: "P" } ] },
+        { text: "你更希望自己的人生是怎样的？", options: [ { text: "一切尽在掌控之中，稳步上升的确定性", val: "J" }, { text: "充满弹性，随时可以转向的旷野", val: "P" } ] }
+    ];
+
+    /* =========================================
+       3. 核心数据 (全面感性升级：双图 + 走心文案)
+       ========================================= */
+    const cities = {
+        "INFP": { 
+            name: "大理", jung: "寻道者 / 创造者", 
+            drive: "追求内心的自洽与纯洁的理想国", light: "极高同理心、浪漫主义、天赋灵气", shadow: "逃避现实、情绪内耗、不切实际", safe: "苍山洱海间的自由之风", 
+            img: "https://images.unsplash.com/photo-1543622748-5bcbf915fac1", 
+            auraImg: "https://images.unsplash.com/photo-1518002171953-a080ee817e1f?auto=format&fit=crop&q=80&w=400",
+            whisper: "其实你远比别人想象的要敏感，也承受了更多不被理解的孤独。",
+            radar: [95, 95, 30, 20, 40], 
+            text: "你的灵魂底色是柔软而通透的。在世俗的眼光里，你或许有些“不切实际”，但只有你自己知道，为了守护内心那片未被污染的纯洁之地，你耗费了多少心力。\n\n大理这座避难所，是你灵魂的倒影。你不属于钢筋水泥的格子间，也不屑于攀爬世俗的阶梯。你很容易被一首诗、一抹晚霞打动。请停止对自己的内耗与怀疑吧，你无需向这个世界证明什么，你本身就是一首极其珍贵的、未完的诗。" 
+        },
+        "INFJ": { 
+            name: "杭州", jung: "预言家 / 智者", 
+            drive: "寻找宇宙深层规律与极致的精神共鸣", light: "洞察人心、深邃哲思、坚守原则", shadow: "精神洁癖、过度完美主义、宿命感", safe: "灵隐寺的禅意与桂花雨", 
+            img: "https://images.unsplash.com/photo-1563240619-44ceaf690f0b", 
+            auraImg: "https://images.unsplash.com/photo-1499244571948-7cc805668d29?auto=format&fit=crop&q=80&w=400",
+            whisper: "你总是能轻易看透别人，却很少有人能真正走进你的内心。",
+            radar: [85, 90, 40, 60, 75], 
+            text: "你拥有最罕见、也最深邃的灵魂。你外表温和宁静，内心却有着极度坚定的精神洁癖。你极其敏锐，总能在人群中一眼看穿事物运行的本质和他人潜藏的伪装。\n\n杭州的烟雨完美契合了你的特质。西湖的潋滟呼应着你追求深度的灵魂。你不喜欢无意义的喧嚣社交，你渴望的是那种能触碰灵魂的对话。你像一幅留白的水墨画，在默默缝补这个略显粗糙的世界。原谅自己的孤独吧，高维度的灵魂注定是要独自走过长夜的。" 
+        },
+        "INTJ": { 
+            name: "深圳", jung: "统治者 / 策略家", 
+            drive: "解构并重塑世界的系统与底层规则", light: "高瞻远瞩、绝对理性、极致高效", shadow: "冷酷傲慢、情感隔离、难以共情", safe: "深夜运转的超级服务器", 
+            img: "https://images.unsplash.com/photo-1517400508447-f8dd518b86db", 
+            auraImg: "https://images.unsplash.com/photo-1550684848-fac1c5b4e853?auto=format&fit=crop&q=80&w=400",
+            whisper: "在极其理性的外表下，你藏着一颗不愿被轻易触碰的滚烫真心。",
+            radar: [80, 20, 30, 90, 95], 
+            text: "你是冷峻的未来缔造者。人们往往只看到你极其理智、高效甚至有些“冷酷”的一面，却不知这是你用来保护自己的铠甲。你在脑海中时刻构建着庞大的系统，厌恶一切低效与愚蠢。\n\n拔地而起的深圳，是你最好的精神归宿。这里没有历史包袱，只有代码和改变世界的渴望。在这座霓虹闪烁的科技之城里，你可以心无旁骛地挥舞你理性的手术刀。不要害怕被人误解为孤独，你是注定要改写游戏规则的人。" 
+        },
+        "ENFP": { 
+            name: "重庆", jung: "魔术师 / 探索者", 
+            drive: "体验世界上所有的可能性与极致的刺激", light: "感染力极强、无限创意、热烈滚烫", shadow: "三分钟热度、注意力涣散、冲动", safe: "沸腾的麻辣红汤与赛博街道", 
+            img: "https://images.unsplash.com/photo-1555899434-94d1368aa7af", 
+            auraImg: "https://images.unsplash.com/photo-1541701494587-cb58502866ab?auto=format&fit=crop&q=80&w=400",
+            whisper: "原谅自己的三分钟热度吧，因为你的每一次燃烧都是无比真诚的。",
+            radar: [98, 85, 50, 10, 50], 
+            text: "你的灵魂是一口沸腾的红汤！你总是充满着旺盛的好奇心和天马行空的想象力，你拒绝任何一眼望到头的生活。但在热情退却的深夜，你也会突然陷入深深的虚无感。\n\n重庆的3D魔幻完全是你灵魂的镜像。这座城市从不讲究所谓的“规矩”和“平坦”，充满了不确定性的刺激。你在这里如鱼得水，你的感染力能点燃周围的每一个人。不要因为短暂的迷茫而自我怀疑，你的存在本身，就是为了在这个世界制造绚烂的烟火。" 
+        },
+        "ISFJ": { 
+            name: "苏州", jung: "照顾者 / 守护者", 
+            drive: "维持现世的安稳，默默守护所爱之人", light: "温润如玉、忠诚可靠、极致细节控", shadow: "委屈求全、拒绝改变、隐性内耗", safe: "细雨蒙蒙的江南水乡与长街", 
+            img: "https://images.unsplash.com/photo-1573030230214-747161833d7b", 
+            auraImg: "https://images.unsplash.com/photo-1490750967868-88cb4aca0fbd?auto=format&fit=crop&q=80&w=400",
+            whisper: "在体面地照顾好所有人之前，请先学会拥抱那个疲惫的自己。",
+            radar: [30, 90, 95, 75, 40], 
+            text: "你的灵魂散发着一种让人无比安心的暖意。你总是极其敏锐地察觉他人的需求，习惯性地把别人的感受放在自己之前。你渴望稳定、和谐的生活，却常常在深夜感到不被理解的委屈。\n\n苏州的园林与水乡，是你灵魂的具象化。温润、精致、不具攻击性，却有着绵长的力量。你不喜欢冲突，更讨厌分离。在这座小桥流水的城市里，你的善良与忠诚将得到最温柔的回应。但请记住，偶尔自私一点，也是被允许的。" 
+        },
+        "INTP": { 
+            name: "南京", jung: "学者 / 逻辑学家", 
+            drive: "探究宇宙底层的绝对真理与客观规律", light: "知识渊博、客观中立、思想极其独立", shadow: "拖延症、眼高手低、社交冷漠", safe: "梧桐树下无人问津的废弃图书馆", 
+            img: "https://images.unsplash.com/photo-1590403158097-407cb9b6b85e", 
+            auraImg: "https://images.unsplash.com/photo-1519336367661-eba9c1dfa5e9?auto=format&fit=crop&q=80&w=400",
+            whisper: "你不是不关心人类，你只是更迷恋宇宙那套完美无瑕的公式。",
+            radar: [90, 30, 20, 40, 98], 
+            text: "你的灵魂是一座孤高的图书馆。你对探究宇宙的底层逻辑有着近乎病态的痴迷。在世俗看来，你或许有些“懒散”或“冷漠”，但你的大脑其实每秒钟都在进行着极其绚丽的风暴。\n\n南京这座六朝古都，藏着你需要的底蕴。它有着深厚的学术氛围和不张扬的烟水气。在这里，你可以躲进梧桐树的阴影里，冷眼旁观历史的兴衰。你那充满智慧与辩证的灵魂，不需要迎合任何人，真理自然会为你加冕。" 
+        },
+        "ESTP": { 
+            name: "武汉", jung: "战士 / 冒险家", 
+            drive: "追求速度与肾上腺素，征服眼前的危机", light: "快意恩仇、极其敏锐、果敢决断", shadow: "鲁莽冲动、无视规则、缺乏长远规划", safe: "江湖气十足的喧闹码头与街头", 
+            img: "https://images.unsplash.com/photo-1582033878028-21d15c0e1898", 
+            auraImg: "https://images.unsplash.com/photo-1557800636-8ab370402e16?auto=format&fit=crop&q=80&w=400",
+            whisper: "那些没能杀死你的危机，最终都成了你生命里最性感的勋章。",
+            radar: [80, 30, 60, 30, 85], 
+            text: "你的灵魂充满了极具爆发力的江湖气！你永远活在当下，热衷于行动、冒险和肾上腺素飙升的感觉。你讨厌虚伪的客套和长篇大论的说教，你只相信自己的直觉和手腕。\n\n武汉这座码头文化深厚的城市，和你的气场完美融合。过早的烟火气呼应着你果断、甚至有些莽撞的生命力。你不怕困难，甚至享受在混乱中杀出一条血路。你直来直往，豪爽大气，这个世界需要你这样敢于掀桌子的人。" 
+        },
+        "ISFP": { 
+            name: "成都", jung: "流浪者 / 艺术家", 
+            drive: "沉浸在当下，享受极致的美学与感官愉悦", light: "极度松弛、审美卓越、温柔随和", shadow: "回避冲突、缺乏规划、隐性抑郁", safe: "街头巷尾飘香的盖碗茶与独立画廊", 
+            img: "https://images.unsplash.com/photo-1577907578278-df0931fc8180", 
+            auraImg: "https://images.unsplash.com/photo-1505909182942-e2f09aee3e89?auto=format&fit=crop&q=80&w=400",
+            whisper: "你并非没有野心，你只是觉得，今天的晚霞比任何KPI都重要。",
+            radar: [85, 80, 60, 20, 30], 
+            text: "你的灵魂是一首慵懒的民谣。你拥有极高的美学感知力和内敛的情感，你不追求宏大叙事，只在乎今天的风够不够温柔，这杯咖啡够不够香。很多人觉得你随波逐流，但你其实有着极强的内在底线。\n\n成都简直是为你量身定做的容器。你骨子里带着迷人的松弛感，坚决拒绝被现代社会的内卷裹挟。在这里，时间是用来浪费的。你的随性与独特的艺术直觉，将在这里被无限放大，你生来就是为了体验这人间的声色犬马。" 
+        }
+    };
+
+    // 容错处理 (将未写详细长文案的其他MBTI归类到相近的城市，确保体验完整)
+    const mbtiMap = { "ENTP": "ENFP", "ENTJ": "INTJ", "ENFJ": "INFJ", "ESTJ": "INTJ", "ESFJ": "ISFJ", "ISTJ": "ISFJ", "ISTP": "INTP", "ESFP": "ENFP" };
+
+    /* =========================================
+       4. 核心交互流程逻辑
+       ========================================= */
+    let currentQuestion = 0;
+    let scores = { E:0, I:0, S:0, N:0, T:0, F:0, J:0, P:0 };
+
+    function startTest() {
+        document.getElementById('start-page').classList.remove('active');
+        document.getElementById('question-page').classList.add('active');
+        renderQuestion();
+    }
+
+    function renderQuestion() {
+        const qCard = document.getElementById('q-card');
+        qCard.classList.remove('slide-in');
+        void qCard.offsetWidth; 
+        qCard.classList.add('slide-in');
+
+        const q = questions[currentQuestion];
+        const qIndex = String(currentQuestion + 1).padStart(2, '0');
+        document.querySelector('.q-num:first-child').innerText = `Q.${qIndex}`;
+        document.getElementById('q-title').innerText = q.text;
+        
+        const container = document.getElementById('options-container');
+        container.innerHTML = '';
+        
+        q.options.forEach(opt => {
+            const div = document.createElement('div');
+            div.className = 'option';
+            div.innerText = opt.text;
+            div.onclick = () => handleAnswer(opt.val);
+            container.appendChild(div);
+        });
+
+        const progress = (currentQuestion / 20) * 100;
+        document.getElementById('progress').style.width = progress + '%';
+    }
+
+    function handleAnswer(value) {
+        scores[value]++;
+        const qCard = document.getElementById('q-card');
+        qCard.classList.remove('slide-in');
+        qCard.classList.add('slide-out');
+
+        setTimeout(() => {
+            qCard.classList.remove('slide-out');
+            currentQuestion++;
+            if (currentQuestion < questions.length) {
+                renderQuestion();
+            } else {
+                showLoading();
+            }
+        }, 300);
+    }
+
+    function showLoading() {
+        document.getElementById('progress').style.width = '100%';
+        document.getElementById('question-page').classList.remove('active');
+        document.getElementById('loading-page').classList.add('active');
+        
+        setTimeout(() => {
+            calculateResult();
+        }, 3000); // 增加几百毫秒，拉满神秘感
+    }
+
+    function calculateResult() {
+        document.getElementById('loading-page').classList.remove('active');
+        document.getElementById('result-page').classList.add('active');
+
+        // 计算MBTI
+        const type = [
+            scores.E > scores.I ? 'E' : 'I',
+            scores.S > scores.N ? 'S' : 'N',
+            scores.T > scores.F ? 'T' : 'F',
+            scores.J > scores.P ? 'J' : 'P'
+        ].join('');
+
+        let finalType = cities[type] ? type : mbtiMap[type];
+        if(!finalType) finalType = "INFP"; 
+        
+        const data = cities[finalType];
+
+        // 渲染文本与图片
+        document.getElementById('res-city').innerText = data.name;
+        document.getElementById('res-mbti').innerText = `MBTI: ${type}`;
+        document.getElementById('res-jung').innerText = `原型: ${data.jung}`;
+        
+        document.getElementById('res-img').style.backgroundImage = `url('${data.img}?auto=format&fit=crop&q=80&w=800')`;
+        document.getElementById('res-aura').style.backgroundImage = `url('${data.auraImg}')`;
+        document.getElementById('res-whisper').innerText = `${data.whisper}`;
+        
+        document.getElementById('t-drive').innerText = data.drive;
+        document.getElementById('t-light').innerText = data.light;
+        document.getElementById('t-shadow').innerText = data.shadow;
+        document.getElementById('t-safe').innerText = data.safe;
+        
+        document.getElementById('res-desc').innerText = data.text;
+
+        // 绘制数据图
+        drawRadarChart(data.radar);
+        renderDualBar('IE', 'I', 'E');
+        renderDualBar('NS', 'N', 'S');
+        renderDualBar('TF', 'T', 'F');
+        renderDualBar('JP', 'J', 'P');
+    }
+
+    function renderDualBar(id, leftKey, rightKey) {
+        const total = 5; 
+        let leftPct = Math.round((scores[leftKey] / total) * 100);
+        let rightPct = Math.round((scores[rightKey] / total) * 100);
+
+        if(leftPct === 0) { leftPct = 10; rightPct = 90; }
+        if(rightPct === 0) { rightPct = 10; leftPct = 90; }
+
+        document.getElementById(`pct-${leftKey}`).innerText = leftPct + '%';
+        document.getElementById(`pct-${rightKey}`).innerText = rightPct + '%';
+
+        setTimeout(() => {
+            document.getElementById(`bar-${id}-L`).style.width = leftPct + '%';
+            document.getElementById(`bar-${id}-R`).style.width = rightPct + '%';
+        }, 100);
+    }
+
+    /* =========================================
+       5. 高级纯手写 SVG 五维雷达图算法
+       ========================================= */
+    function drawRadarChart(dataValues) {
+        const container = document.getElementById('radar-container');
+        const labels = ["精神自由度", "情感细腻度", "现世羁绊感", "秩序掌控欲", "逻辑锋利度"];
+        
+        const size = 280;
+        const center = size / 2;
+        const radius = 80;
+        
+        function getPoint(angle, valueStr) {
+            const rad = (angle * Math.PI) / 180;
+            const val = valueStr / 100; 
+            const r = radius * val;
+            return { x: center + r * Math.cos(rad), y: center + r * Math.sin(rad) };
+        }
+
+        const angles = [-90, -18, 54, 126, 198];
+        
+        let gridHTML = '';
+        [1, 0.66, 0.33].forEach((scale) => {
+            let pointsStr = '';
+            angles.forEach(angle => {
+                const p = getPoint(angle, 100 * scale);
+                pointsStr += `${p.x},${p.y} `;
+            });
+            gridHTML += `<polygon points="${pointsStr.trim()}" fill="none" stroke="#eaeaea" stroke-width="1"/>`;
+        });
+
+        let axisHTML = '';
+        angles.forEach(angle => {
+            const p = getPoint(angle, 100);
+            axisHTML += `<line x1="${center}" y1="${center}" x2="${p.x}" y2="${p.y}" stroke="#eaeaea" stroke-width="1"/>`;
+        });
+
+        let dataPointsStr = '';
+        angles.forEach((angle, index) => {
+            const p = getPoint(angle, dataValues[index]);
+            dataPointsStr += `${p.x},${p.y} `;
+        });
+        let dataPolyHTML = `<polygon points="${dataPointsStr.trim()}" fill="rgba(107, 96, 86, 0.12)" stroke="#6b6056" stroke-width="1.5"/>`;
+
+        let labelsHTML = '';
+        let dotsHTML = '';
+        angles.forEach((angle, index) => {
+            const labelP = getPoint(angle, 135); 
+            const dataP = getPoint(angle, dataValues[index]);
+            
+            dotsHTML += `<circle cx="${dataP.x}" cy="${dataP.y}" r="3" fill="#6b6056"/>`;
+            
+            let anchor = "middle";
+            if (angle === -18 || angle === 54) anchor = "start";
+            if (angle === 126 || angle === 198) anchor = "end";
+            
+            labelsHTML += `
+                <text x="${labelP.x}" y="${labelP.y}" class="radar-label" text-anchor="${anchor}" alignment-baseline="middle">${labels[index]}</text>
+                <text x="${labelP.x}" y="${labelP.y + 14}" class="radar-value-text" text-anchor="${anchor}">${dataValues[index]}</text>
+            `;
+        });
+
+        const svgHTML = `
+            <svg class="radar-svg" viewBox="0 0 ${size} ${size}">
+                ${gridHTML}
+                ${axisHTML}
+                ${dataPolyHTML}
+                ${dotsHTML}
+                ${labelsHTML}
+            </svg>
+        `;
+        container.innerHTML = svgHTML;
+    }
+</script>
+</body>
+</html>
